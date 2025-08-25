@@ -3,6 +3,7 @@ import express from 'express';
 import { z } from 'zod';
 import { Wallet, TypedDataDomain, keccak256, AbiCoder, getBytes, verifyTypedData } from 'ethers';
 import { callHash, type TxIntent as TxIntentType } from '@canopy/attest';
+import { PolicyEngine, type Decision } from './policy.js';
 
 const app = express();
 app.use(express.json({ limit: '128kb' }));
@@ -23,6 +24,8 @@ const TxIntent = z.object({
 });
 
 type TxIntent = z.infer<typeof TxIntent>;
+const policy = new PolicyEngine(process.env.POLICY_WASM_PATH);
+await policy.init();
 
 const capabilityTypes = {
   CompliantCall: [
@@ -43,7 +46,7 @@ function domain(intent: TxIntent, verifier: string): TypedDataDomain {
 function nowSec() { return Math.floor(Date.now() / 1000); }
 
 app.get('/health/ping', (_req, res) => {
-  res.json({ ok: true, issuer: issuer.address });
+  res.json({ ok: true, issuer: issuer.address, policy: policy.status() });
 });
 
 app.post('/policy/evaluate', async (req, res) => {
@@ -51,7 +54,7 @@ app.post('/policy/evaluate', async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
   const tx = parsed.data;
 
-  const decision = { outcome: 'allow', reasons: [] as string[] };
+  const decision: Decision = await policy.evaluate({ txIntent: tx });
 
   const ch = callHash(tx as TxIntentType);
   const expiry = nowSec() + 60;
@@ -142,6 +145,12 @@ app.post('/proof/verify', async (req, res) => {
     res.status(400).json({ valid: false, reason: e.message });
   }
 });
+
+// --- EAS placeholders (attestation path) ---
+app.post('/eas/attest', async (_req, res) => {
+  res.status(501).json({ ok: false, reason: 'EAS not wired yet; will submit callHash-bound attestation when configured' });
+});
+
 
 const port = Number(process.env.PORT || 8787);
 app.listen(port, () => console.log(`[canopy] MCP server on :${port} (issuer ${issuer.address})`));
