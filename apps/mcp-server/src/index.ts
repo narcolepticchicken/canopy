@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { z } from 'zod';
-import { Wallet, TypedDataDomain, keccak256, AbiCoder, getBytes, verifyTypedData } from 'ethers';
+import { Wallet, TypedDataDomain, keccak256, AbiCoder, getBytes, verifyTypedData, randomBytes } from 'ethers';
 import { callHash, type TxIntent as TxIntentType } from '@canopy/attest';
 import { PolicyEngine, type Decision } from './policy.js';
 
@@ -146,9 +146,59 @@ app.post('/proof/verify', async (req, res) => {
   }
 });
 
-// --- EAS placeholders (attestation path) ---
-app.post('/eas/attest', async (_req, res) => {
-  res.status(501).json({ ok: false, reason: 'EAS not wired yet; will submit callHash-bound attestation when configured' });
+// --- EAS offchain attestation (minimal) ---
+// Issues an EAS-compatible offchain attestation for the callHash + expiry + nonce.
+// Requires env: EAS_CHAIN_ID, EAS_ADDRESS, optional EAS_SCHEMA_UID
+app.post('/eas/attest', async (req, res) => {
+  const { txIntent, expiry, nonce } = req.body || {};
+  const parsed = TxIntent.safeParse(txIntent);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
+  const tx = parsed.data;
+
+  const chainIdEnv = process.env.EAS_CHAIN_ID;
+  const easAddr = process.env.EAS_ADDRESS;
+  const schemaUid = process.env.EAS_SCHEMA_UID || '0x' + '0'.repeat(64);
+  if (!chainIdEnv || !easAddr) {
+    return res.status(400).json({ ok: false, reason: 'EAS_ADDRESS and EAS_CHAIN_ID required in env' });
+  }
+
+  const chainId = Number(chainIdEnv);
+  const ch = callHash(tx as TxIntentType);
+  const exp = Number(expiry ?? (nowSec() + 60));
+  const nn = typeof nonce === 'string' ? BigInt(nonce) : BigInt(nonce ?? keccak256(AbiCoder.defaultAbiCoder().encode(['bytes32','address'], [ch, issuer.address])));
+  const data = AbiCoder.defaultAbiCoder().encode(['bytes32','uint64','uint256'], [ch, exp, nn]);
+
+  const domain: TypedDataDomain = { name: 'EAS Attestation', version: '1.0.0', chainId, verifyingContract: easAddr };
+  const types = {
+    Attest: [
+      { name: 'schema',          type: 'bytes32' },
+      { name: 'recipient',       type: 'address' },
+      { name: 'time',            type: 'uint64'  },
+      { name: 'expirationTime',  type: 'uint64'  },
+      { name: 'revocable',       type: 'bool'    },
+      { name: 'refUID',          type: 'bytes32' },
+      { name: 'data',            type: 'bytes'   },
+      { name: 'salt',            type: 'bytes32' }
+    ]
+  } as const;
+
+  const msg = {
+    schema: schemaUid,
+    recipient: tx.subject,
+    time: BigInt(nowSec()),
+    expirationTime: BigInt(exp),
+    revocable: true,
+    refUID: '0x' + '0'.repeat(64),
+    data,
+    salt: '0x' + Buffer.from(randomBytes ? randomBytes(32) : getBytes(keccak256(getBytes(issuer.privateKey)))).toString('hex')
+  };
+
+  try {
+    const signature = await issuer.signTypedData(domain, types as any, msg);
+    res.json({ ok: true, domain, types: 'EAS.Attest', message: msg, signature });
+  } catch (e: any) {
+    res.status(400).json({ ok: false, reason: e.message });
+  }
 });
 
 
