@@ -1,0 +1,38 @@
+### Health
+GET http://localhost:8787/health/ping
+
+### Evaluate (get call-bound capability)
+POST http://localhost:8787/policy/evaluate
+content-type: application/json
+
+{
+  "txIntent":{
+    "chainId":1,
+    "subject":"0x0000000000000000000000000000000000000001",
+    "target":"0x0000000000000000000000000000000000000002",
+    "value":"0x0",
+    "selector":"0xabcdef01",
+    "args":"0x",
+    "policyId":"0x0000000000000000000000000000000000000000000000000000000000000042"
+  }
+}
+
+### Verify (off-chain preflight) — fill expiry/nonce/sig from evaluate response
+POST http://localhost:8787/proof/verify
+content-type: application/json
+
+{
+  "txIntent":{
+    "chainId":1,
+    "subject":"0x0000000000000000000000000000000000000001",
+    "target":"0x0000000000000000000000000000000000000002",
+    "value":"0x0",
+    "selector":"0xabcdef01",
+    "args":"0x",
+    "policyId":"0x0000000000000000000000000000000000000000000000000000000000000042"
+  },
+  "verifier":"0x0000000000000000000000000000000000000002",
+  "capabilitySig":"<paste from /policy/evaluate>",
+  "expiry": <paste expiry from /policy/evaluate>,
+  "nonce":  "<paste nonce from /policy/evaluate>"
+}

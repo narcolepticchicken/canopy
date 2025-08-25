@@ -1,0 +1,53 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.cache/
+
+# Go
+bin/
+dist/
+coverage.out
+
+# Local tooling
+.claude/
+*.local.json
+node_modules/
+dist/
+build/
+.env
+.env.*
+.DS_Store
+Thumbs.db
