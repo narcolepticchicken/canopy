@@ -13,10 +13,24 @@ Canopy turns an intended transaction into a short‑lived, verifiable capability
 - Optional (contracts): Foundry (forge/cast) — `curl -L https://foundry.paradigm.xyz | bash && foundryup`
 - Tools: `curl`, `jq`
 
-## Repository Layout
-- `apps/mcp-server/`: Express server (capability issue/verify, EAS).
-- `pkg/attest/`: Shared TS lib exposing `callHash(txIntent)` and `TxIntent` type.
-- `contracts/`: Foundry workspace (verifier lib, 2771 forwarder, venue example).
+## Components
+
+### apps/mcp-server
+- **Purpose:** Hosts the HTTP API for capability issuance, verification, and optional [EAS attestations](apps/mcp-server/src/index.ts).
+- **Tech:** TypeScript + Express server with a pluggable [policy engine](apps/mcp-server/src/policy.ts).
+- **Integration:** Consumes the [`@canopy/attest`](pkg/attest) library for `callHash` and interacts with on‑chain contracts via the generated capability proofs.
+
+### pkg/attest
+- **Purpose:** Shared TypeScript library exposing the `TxIntent` type and [`callHash` helper](pkg/attest/src/callHash.ts) for deterministic binding of transactions.
+- **Tech:** TypeScript package built with `tsc` and published for workspace consumers.
+- **Integration:** Used by both the MCP server and the Solidity contracts to ensure consistent call hashing.
+
+### contracts
+- **Purpose:** Foundry workspace with the on‑chain [verification library](contracts/src/CanopyVerifierLib.sol), [ERC‑2771 forwarder](contracts/src/CompliantForwarder2771.sol), and a [venue example](contracts/src/VenueExample.sol).
+- **Tech:** Solidity contracts compiled and tested with [Foundry](contracts/foundry.toml).
+- **Integration:** Contracts validate the capability produced off‑chain by the MCP server using the same `callHash` logic from `@canopy/attest`.
+
+Other files
 - `.github/workflows/ci.yml`: CI for Node/pnpm and Foundry.
 - `examples.http`: Ready‑to‑run requests for local testing.
 - `Makefile`: Shortcuts for setup/dev/build/test.
