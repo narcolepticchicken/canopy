@@ -82,5 +82,8 @@ GitHub Actions builds the TS workspace and the Foundry contracts:
 - Never commit real secrets; use `.env` and provide `.env.example` only.
 - Capabilities include expiry and nonce; keep TTLs short and verify server‑side.
 
+## Contributing
+Ape in with a PR—just read [CONTRIBUTING.md](CONTRIBUTING.md) and vibe with [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) first.
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
