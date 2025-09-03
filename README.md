@@ -6,6 +6,7 @@ Canopy turns an intended transaction into a short‑lived, verifiable capability
 - Optional EAS off‑chain attestation containing the call binding (callHash, expiry, nonce).
 - A pluggable policy engine (OPA → Wasm). Defaults to allow.
 - Solidity helpers: an on‑chain verifier library, a minimal ERC‑2771 forwarder, and a venue example.
+See the [docs](docs/README.md) directory for extended topics and deep dives.
 
 ## Prerequisites
 - Node 20+ (an `.nvmrc` is provided): `nvm use`
