@@ -39,6 +39,15 @@ Other files
 - `examples.http`: Ready‑to‑run requests for local testing.
 - `Makefile`: Shortcuts for setup/dev/build/test.
 
+## Architecture
+Canopy converts a `txIntent` into a call‑bound capability in three steps:
+
+1. Build `txIntent`.
+2. `POST /policy/evaluate` → `{ decision, callHash, expiry, nonce, capabilitySig }`.
+3. Send the call with the capability proof; the destination or `POST /proof/verify` validates it.
+
+Read [docs/architecture.md](docs/architecture.md) for diagrams, endpoint details, and EIP‑712 structures.
+
 ## Setup & Run
 ```bash
 pnpm install                # install workspace deps
