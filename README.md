@@ -1,123 +1,112 @@
-# Canopy
+# Canopy — Compliance MCP Server for Call-Bound Capabilities
 
-Canopy issues short‑lived, verifiable capabilities that bind off‑chain policy decisions to specific contract calls, ensuring that only pre‑approved transactions reach the chain.
+Canopy is a Model Context Protocol (MCP) server that issues short-lived, verifiable capabilities linking an off-chain policy decision to a specific contract call. Each capability binds a `txIntent` to a `callHash`, so only compliant transactions reach the chain.
 
-## Intended Audience
-Canopy is designed for:
+## Who It's For
+- Smart-contract developers that need policy-guarded calls
+- Backend engineers building relayers or wallets with pre-flight checks
+- Security teams verifying off-chain compliance before execution
 
-- smart‑contract developers who need policy‑guarded calls,
-- backend engineers seeking verifiable off‑chain checks before submitting a transaction,
-- teams building relayers or wallets that require call‑specific authorization.
-
-For example, a trading platform can evaluate a user's KYC status off‑chain, issue a Canopy capability, and attach it to a transaction sent to a DeFi contract.
-
-## Intended Audience
-- Smart-contract developers using Solidity helpers and forwarder/venue examples.
-- Backend/API developers integrating the `mcp-server` and policy engine.
-- Security/audit teams verifying capabilities and enforcing TTL/nonce best practices.
-
-See [Getting Started](docs/getting-started.md) for details tailored to each group.
-
-## Prerequisites
-- Node 20+ (an `.nvmrc` is provided): `nvm use`
-- pnpm (v10; pinned via `packageManager`): `corepack enable` then `corepack prepare pnpm@10.0.0 --activate`
-- Optional (contracts): Foundry (forge/cast) — `curl -L https://foundry.paradigm.xyz | bash && foundryup`
-- Tools: `curl`, `jq`
-
-## Components
-
+## What's Inside
 ### apps/mcp-server
-- **Purpose:** Hosts the HTTP API for capability issuance, verification, and optional [EAS attestations](apps/mcp-server/src/index.ts).
-- **Tech:** TypeScript + Express server with a pluggable [policy engine](apps/mcp-server/src/policy.ts).
-- **Integration:** Consumes the [`@canopy/attest`](pkg/attest) library for `callHash` and interacts with on‑chain contracts via the generated capability proofs.
+- Express API exposing `GET /health/ping`, `POST /policy/evaluate`, `POST /capability/issue`, and `POST /proof/verify`
+- Loads policy logic from `POLICY_WASM_PATH` and signs capabilities with `ISSUER_ECDSA_PRIVATE_KEY`
 
 ### pkg/attest
-- **Purpose:** Shared TypeScript library exposing the `TxIntent` type and [`callHash` helper](pkg/attest/src/callHash.ts) for deterministic binding of transactions.
-- **Tech:** TypeScript package built with `tsc` and published for workspace consumers.
-- **Integration:** Used by both the MCP server and the Solidity contracts to ensure consistent call hashing.
+- Shared TypeScript library providing the `TxIntent` type and `callHash` helper
+- Used by both the server and on-chain contracts
 
 ### contracts
-- **Purpose:** Foundry workspace with the on‑chain [verification library](contracts/src/CanopyVerifierLib.sol), [ERC‑2771 forwarder](contracts/src/CompliantForwarder2771.sol), and a [venue example](contracts/src/VenueExample.sol).
-- **Tech:** Solidity contracts compiled and tested with [Foundry](contracts/foundry.toml).
-- **Integration:** Contracts validate the capability produced off‑chain by the MCP server using the same `callHash` logic from `@canopy/attest`.
+- Solidity `CanopyVerifierLib.sol`, ERC-2771 forwarder, and venue examples
+- Built and tested with Foundry
 
-Other files
-- `.github/workflows/ci.yml`: CI for Node/pnpm and Foundry.
-- `examples.http`: Ready‑to‑run requests for local testing.
-- `Makefile`: Shortcuts for setup/dev/build/test.
+### other
+- `examples.http` request collection
+- Documentation and configuration samples
 
-## Architecture
-Canopy converts a `txIntent` into a call‑bound capability in three steps:
+## Features
+- Short-lived `EIP-712` capabilities bound to call hashes
+- Pluggable policy evaluation via OPA Wasm or custom logic
+- On-chain verification library and compliant forwarder
+- MCP tooling for issuance and proof verification
 
-1. Build `txIntent`.
-2. `POST /policy/evaluate` → `{ decision, callHash, expiry, nonce, capabilitySig }`.
-3. Send the call with the capability proof; the destination or `POST /proof/verify` validates it.
+## Requirements
+- Node.js 20+ (`.nvmrc` provided)
+- `pnpm` v10 (`corepack enable` && `corepack prepare pnpm@10.0.0 --activate`)
+- Optional: Foundry for contract builds (`curl -L https://foundry.paradigm.xyz | bash && foundryup`)
+- CLI tools: `curl`, `jq`
 
-Read [docs/architecture.md](docs/architecture.md) for diagrams, endpoint details, and EIP‑712 structures.
-
-## Setup & Run
+## Quick Start
 ```bash
-pnpm install                # install workspace deps
+pnpm install
 pnpm -w -F @canopy/attest build
-pnpm -w -F mcp-server dev   # starts API on :8787
-# New terminal
-curl -s http://localhost:8787/health/ping | jq
+pnpm -w -F mcp-server dev
 ```
 
-Makefile shortcuts
-- `make setup` — pnpm install
-- `make build` — builds TS packages and, if present, contracts
-- `make dev` — run server in watch mode
-- `make test` — Vitest (server) + Foundry tests (if installed)
+## How It Works
+1. Build `txIntent` (chainId, subject, target, value, selector, args, policyId).
+2. `POST /policy/evaluate` → `{ decision, artifacts: { callHash, expiry, nonce, capabilitySig } }`.
+3. Attach proof to the on-chain call; the destination/validator verifies or pre-flights via `/proof/verify`.
 
-## Configuration
-Copy `.env.example` to `.env` and set as needed:
-- `ISSUER_ECDSA_PRIVATE_KEY`: dev EOA for capability issuance (secp256k1 hex)
-- `PORT`: server port (default 8787)
-- EAS (optional): `EAS_CHAIN_ID`, `EAS_ADDRESS`, `EAS_SCHEMA_UID`
-- Policy (optional): `POLICY_WASM_PATH` to an OPA‑compiled Wasm file
-
-## API
-Base URL: `http://localhost:8787`
-
-- `GET /health/ping` → `{ ok, issuer, policy }`
-- `POST /policy/evaluate` → issues an EIP‑712 capability and returns artifacts
-- `POST /proof/verify` → checks capability signature + TTL/nonce
-- `POST /eas/attest` → returns EAS‑compatible offchain attestation (typed data + signature)
-
-Evaluate example
-```bash
-curl -s -X POST http://localhost:8787/policy/evaluate \
-  -H "content-type: application/json" \
-  -d '{
-    "txIntent":{
-      "chainId":1,
-      "subject":"0x0000000000000000000000000000000000000001",
-      "target":"0x0000000000000000000000000000000000000002",
-      "value":"0x0",
-      "selector":"0xabcdef01",
-      "args":"0x",
-      "policyId":"0x0000000000000000000000000000000000000000000000000000000000000042"
-    }
-  }' | jq
+### Call Binding
+```solidity
+callHash = keccak256(abi.encode(
+  chainid, target, subject, selector, value, keccak256(args)
+))
 ```
 
-## Development
-- Tests (Node): `pnpm -w -F mcp-server test`
-- Tests (Foundry): `cd contracts && forge build && forge test -vvv`
-- Policy engine: place compiled OPA Wasm at `POLICY_WASM_PATH`; otherwise the engine allows by default.
+### Capability (`EIP-712`)
+Domain: `{ name:"Canopy", version:"1", chainId, verifyingContract: verifier }`  
+Type: `CompliantCall(subject, verifier, target, value, argsHash, policyId, expiry, nonce)`
 
-## CI
-GitHub Actions builds the TS workspace and the Foundry contracts:
-- Node: `actions/setup-node@v4` + `pnpm/action-setup@v4`
-- Foundry: `foundry-rs/foundry-toolchain@v1`
+### Safety
+- Short TTL (e.g., 60s), single-use nonce, issuer allowlist
+- Normalize inputs: checksummed `0x` addresses, 4-byte selector, raw args (no selector)
 
-## Security Notes
-- Never commit real secrets; use `.env` and provide `.env.example` only.
-- Capabilities include expiry and nonce; keep TTLs short and verify server‑side.
+## MCP Tool Mappings
+| Tool | Description | HTTP Endpoint |
+|------|-------------|---------------|
+| `health` | ping the server | `GET /health/ping` |
+| `policy` | evaluate policy & issue capability | `POST /policy/evaluate` |
+| `capability` | issue capability directly | `POST /capability/issue` |
+| `proof` | verify a capability proof | `POST /proof/verify` |
 
-## Contributing
-Ape in with a PR—just read [CONTRIBUTING.md](CONTRIBUTING.md) and vibe with [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) first.
+## Example Request
+```http
+POST /policy/evaluate HTTP/1.1
+Content-Type: application/json
+
+{
+  "txIntent": {
+    "chainId": 1,
+    "subject": "0x0000000000000000000000000000000000000001",
+    "target": "0x0000000000000000000000000000000000000002",
+    "value": "0x0",
+    "selector": "0xabcdef01",
+    "args": "0x",
+    "policyId": "0x42"
+  }
+}
+```
+
+### Response
+```json
+{
+  "decision": "allow",
+  "artifacts": {
+    "callHash": "0x...",
+    "expiry": 0,
+    "nonce": "0x1",
+    "capabilitySig": "0x..."
+  }
+}
+```
+
+## Roadmap
+- Additional capability schemas like `EIP-3074`
+- Persistent storage for issued nonces
+- More MCP tools for contract introspection
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
+
