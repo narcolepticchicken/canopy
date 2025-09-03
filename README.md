@@ -11,6 +11,13 @@ Canopy is designed for:
 
 For example, a trading platform can evaluate a user's KYC status off‑chain, issue a Canopy capability, and attach it to a transaction sent to a DeFi contract.
 
+## Intended Audience
+- Smart-contract developers using Solidity helpers and forwarder/venue examples.
+- Backend/API developers integrating the `mcp-server` and policy engine.
+- Security/audit teams verifying capabilities and enforcing TTL/nonce best practices.
+
+See [Getting Started](docs/getting-started.md) for details tailored to each group.
+
 ## Prerequisites
 - Node 20+ (an `.nvmrc` is provided): `nvm use`
 - pnpm (v10; pinned via `packageManager`): `corepack enable` then `corepack prepare pnpm@10.0.0 --activate`
