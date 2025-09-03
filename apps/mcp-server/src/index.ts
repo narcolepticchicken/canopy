@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { z } from 'zod';
 import { Wallet, TypedDataDomain, keccak256, AbiCoder, getBytes, verifyTypedData, randomBytes } from 'ethers';
+import { randomBytes as nodeRandomBytes } from 'crypto';
 import { callHash, type TxIntent as TxIntentType } from '@canopy/attest';
 import { PolicyEngine, type Decision } from './policy.js';
 
@@ -190,7 +191,7 @@ app.post('/eas/attest', async (req, res) => {
     revocable: true,
     refUID: '0x' + '0'.repeat(64),
     data,
-    salt: '0x' + Buffer.from(randomBytes ? randomBytes(32) : getBytes(keccak256(getBytes(issuer.privateKey)))).toString('hex')
+    salt: '0x' + Buffer.from(randomBytes ? randomBytes(32) : nodeRandomBytes(32)).toString('hex')
   };
 
   try {
