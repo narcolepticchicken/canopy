@@ -6,6 +6,7 @@ import { randomBytes as nodeRandomBytes } from 'crypto';
 import { callHash, type TxIntent as TxIntentType } from '@canopy/attest';
 import { PolicyEngine, type Decision } from './policy.js';
 
+const abi = AbiCoder.defaultAbiCoder();
 const app = express();
 app.use(express.json({ limit: '128kb' }));
 
@@ -59,7 +60,7 @@ app.post('/policy/evaluate', async (req, res) => {
 
   const ch = callHash(tx as TxIntentType);
   const expiry = nowSec() + 60;
-  const nonceHex = keccak256(AbiCoder.defaultAbiCoder().encode(['bytes32','address'], [ch, issuer.address]));
+  const nonceHex = keccak256(abi.encode(['bytes32','address'], [ch, issuer.address]));
   const verifier = tx.target;
   const argsHash = keccak256(getBytes(tx.args));
 
@@ -103,7 +104,7 @@ app.post('/capability/issue', async (req, res) => {
     argsHash,
     policyId: tx.policyId,
     expiry:   Number(expiry ?? (nowSec() + 60)),
-    nonce:    typeof nonce === 'string' ? BigInt(nonce) : BigInt(nonce ?? keccak256(AbiCoder.defaultAbiCoder().encode(['bytes32','address'], [ch, issuer.address])))
+    nonce:    typeof nonce === 'string' ? BigInt(nonce) : BigInt(nonce ?? keccak256(abi.encode(['bytes32','address'], [ch, issuer.address])))
   };
   const sig = await issuer.signTypedData(domain(tx, verifier), capabilityTypes as any, val);
   res.json({
@@ -166,8 +167,8 @@ app.post('/eas/attest', async (req, res) => {
   const chainId = Number(chainIdEnv);
   const ch = callHash(tx as TxIntentType);
   const exp = Number(expiry ?? (nowSec() + 60));
-  const nn = typeof nonce === 'string' ? BigInt(nonce) : BigInt(nonce ?? keccak256(AbiCoder.defaultAbiCoder().encode(['bytes32','address'], [ch, issuer.address])));
-  const data = AbiCoder.defaultAbiCoder().encode(['bytes32','uint64','uint256'], [ch, exp, nn]);
+  const nn = typeof nonce === 'string' ? BigInt(nonce) : BigInt(nonce ?? keccak256(abi.encode(['bytes32','address'], [ch, issuer.address])));
+  const data = abi.encode(['bytes32','uint64','uint256'], [ch, exp, nn]);
 
   const domain: TypedDataDomain = { name: 'EAS Attestation', version: '1.0.0', chainId, verifyingContract: easAddr };
   const types = {
