@@ -83,4 +83,4 @@ GitHub Actions builds the TS workspace and the Foundry contracts:
 - Capabilities include expiry and nonce; keep TTLs short and verify server‑side.
 
 ## License
-Add a `LICENSE` file or specify your licensing terms.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
