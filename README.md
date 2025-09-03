@@ -7,6 +7,13 @@ Canopy turns an intended transaction into a short‑lived, verifiable capability
 - A pluggable policy engine (OPA → Wasm). Defaults to allow.
 - Solidity helpers: an on‑chain verifier library, a minimal ERC‑2771 forwarder, and a venue example.
 
+## Intended Audience
+- Smart-contract developers using Solidity helpers and forwarder/venue examples.
+- Backend/API developers integrating the `mcp-server` and policy engine.
+- Security/audit teams verifying capabilities and enforcing TTL/nonce best practices.
+
+See [Getting Started](docs/getting-started.md) for details tailored to each group.
+
 ## Prerequisites
 - Node 20+ (an `.nvmrc` is provided): `nvm use`
 - pnpm (v10; pinned via `packageManager`): `corepack enable` then `corepack prepare pnpm@10.0.0 --activate`
