@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": ["apps/*", "pkg/*"],
+  "license": "MIT",
   "packageManager": "pnpm@10.0.0",
   "engines": { "node": ">=20" },
   "scripts": {
