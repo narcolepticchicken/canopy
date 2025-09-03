@@ -1,11 +1,13 @@
 # Canopy — Compliance MCP Server for Call-Bound Capabilities
 
-Canopy is a Model Context Protocol (MCP) server that issues short-lived, verifiable capabilities linking an off-chain policy decision to a specific contract call. Each capability binds a `txIntent` to a `callHash`, so only compliant transactions reach the chain.
+Canopy is a Model Context Protocol (MCP) server that issues short-lived, verifiable capabilities linking an off-chain policy decision to a specific contract call. Each capability binds a `txIntent` to a `callHash`, so only compliant transactions reach the chain. It is not production ready.  Do not look at me if it doesn't work, go make it better. I'm just here for the vibes. 
 
 ## Who It's For
 - Smart-contract developers that need policy-guarded calls
 - Backend engineers building relayers or wallets with pre-flight checks
 - Security teams verifying off-chain compliance before execution
+- Smart whitelisting without storing info on chain
+- For compliance bro's, it's a good way to check KYC/ID etc without storing on chain.
 
 ## What's Inside
 ### apps/mcp-server
