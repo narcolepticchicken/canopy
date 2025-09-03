@@ -1,11 +1,11 @@
 # Canopy
 
-Canopy turns an intended transaction into a short‑lived, verifiable capability bound to a specific on‑chain call. It provides:
+Canopy issues short‑lived, call‑bound capabilities so backend services can check policies off chain before a transaction hits the network. It solves the problem of enforcing arbitrary business rules without cluttering smart contracts and includes call‑bound EIP‑712 capability issuance, optional EAS attestations, a pluggable OPA→Wasm policy engine, and Solidity helpers for on‑chain verification.
 
-- Call‑bound EIP‑712 capability issuance and verification (off‑chain preflight).
-- Optional EAS off‑chain attestation containing the call binding (callHash, expiry, nonce).
-- A pluggable policy engine (OPA → Wasm). Defaults to allow.
-- Solidity helpers: an on‑chain verifier library, a minimal ERC‑2771 forwarder, and a venue example.
+## Intended Audience
+Smart‑contract developers, backend engineers seeking verifiable off‑chain policy checks, and teams building relayers or wallets that need to validate user actions.
+
+For example, a marketplace backend can evaluate a user's intent, issue a capability for the call, and the user submits the transaction with that proof through a forwarding contract.
 
 ## Prerequisites
 - Node 20+ (an `.nvmrc` is provided): `nvm use`
